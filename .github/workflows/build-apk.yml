@@ -31,6 +31,9 @@ jobs:
       - name: Installer les dépendances
         run: npm ci
 
+      - name: Vérifier le JavaScript de l'application
+        run: npm test
+
       - name: Synchroniser Capacitor
         run: npx cap sync android
 
