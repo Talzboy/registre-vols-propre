@@ -212,6 +212,30 @@
   .form-field input.error{border-color:var(--danger);}
   .form-field input.error:focus{box-shadow:0 0 0 3px rgba(220,38,38,0.15);}
   .form-field input:disabled{background:var(--foot-bg); color:var(--text-faint);}
+  .time-picker-trigger{
+    width:100%; min-height:40px; text-align:left; border:1px solid var(--border); border-radius:8px;
+    padding:9px 11px; font:inherit; font-size:14px; color:var(--text-primary); background:var(--surface); cursor:pointer;
+  }
+  .time-picker-trigger:focus{outline:none; border-color:var(--blue); box-shadow:0 0 0 3px rgba(37,99,235,0.15);}
+  .time-picker-trigger.error{border-color:var(--danger);}
+  .time-picker-trigger.error:focus{box-shadow:0 0 0 3px rgba(220,38,38,0.15);}
+  .time-picker{
+    display:none; grid-template-columns:1fr 1fr; gap:12px; margin-top:8px; padding:12px;
+    border:1px solid var(--border); border-radius:8px; background:var(--surface);
+  }
+  .time-picker.open{display:grid;}
+  .time-picker-column{min-width:0;}
+  .time-picker-label{display:block; margin-bottom:7px; font-size:12px; font-weight:700; color:var(--text-secondary);}
+  .time-picker-options{
+    display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px;
+    max-height:168px; overflow-y:auto; overscroll-behavior:contain;
+  }
+  .time-option{
+    min-height:32px; border:1px solid transparent; border-radius:6px; background:var(--surface);
+    color:var(--text-primary); font:inherit; font-size:13px; font-weight:600; cursor:pointer;
+  }
+  .time-option:hover,.time-option.selected{background:var(--blue-tint); border-color:var(--blue); color:var(--blue);}
+  .time-picker-close{grid-column:1/-1; justify-self:end; padding:5px 10px; border:0; background:transparent; color:var(--text-secondary); font:inherit; font-size:12px; font-weight:600; cursor:pointer;}
   .field-error{color:var(--danger); font-size:12px; margin-top:5px;}
   .computed-box{
     border:1px solid var(--border); background:var(--blue-tint); border-radius:8px;
@@ -405,8 +429,22 @@
           <div class="field-error" id="errVols"></div>
         </div>
         <div class="form-field">
-          <label for="fHeures" id="fHeuresLabel">Heures</label>
-          <input type="text" id="fHeures" placeholder="23H30">
+          <label for="fHeuresTrigger" id="fHeuresLabel">Heures</label>
+          <input type="hidden" id="fHeures">
+          <button type="button" class="time-picker-trigger" id="fHeuresTrigger" aria-haspopup="dialog" aria-expanded="false" aria-controls="fHeuresPicker">
+            <span id="fHeuresDisplay">Choisir une heure</span>
+          </button>
+          <div class="time-picker" id="fHeuresPicker" role="dialog" aria-label="Choisir l'heure" aria-hidden="true">
+            <div class="time-picker-column">
+              <span class="time-picker-label">Heures</span>
+              <div class="time-picker-options" id="fHourOptions" role="listbox" aria-label="Heures"></div>
+            </div>
+            <div class="time-picker-column">
+              <span class="time-picker-label">Minutes</span>
+              <div class="time-picker-options" id="fMinuteOptions" role="listbox" aria-label="Minutes"></div>
+            </div>
+            <button type="button" class="time-picker-close" id="fHeuresClose">Fermer</button>
+          </div>
           <div class="field-error" id="errHeures"></div>
         </div>
         <div class="form-field">
@@ -646,10 +684,92 @@ const overlay = document.getElementById('modalOverlay');
 const form = document.getElementById('flightForm');
 const fVols = document.getElementById('fVols');
 const fHeures = document.getElementById('fHeures');
+const fHeuresTrigger = document.getElementById('fHeuresTrigger');
+const fHeuresDisplay = document.getElementById('fHeuresDisplay');
+const fHeuresPicker = document.getElementById('fHeuresPicker');
+const fHourOptions = document.getElementById('fHourOptions');
+const fMinuteOptions = document.getElementById('fMinuteOptions');
 const fSenegalais = document.getElementById('fSenegalais');
 const fPax = document.getElementById('fPax');
 const fCancelled = document.getElementById('fCancelled');
 const fEtrangersComputed = document.getElementById('fEtrangersComputed');
+
+function formatTimeForPicker(value){
+  const match = String(value || '').trim().match(/^(\d{1,2})[Hh:](\d{2})$/);
+  return match ? `${match[1].padStart(2, '0')}:${match[2]}` : '';
+}
+
+function formatTimeForStorage(value){
+  return value.replace(':', 'H');
+}
+
+let selectedHour = null;
+let selectedMinute = null;
+
+function setTimePickerOpen(isOpen){
+  fHeuresPicker.classList.toggle('open', isOpen);
+  fHeuresPicker.setAttribute('aria-hidden', String(!isOpen));
+  fHeuresTrigger.setAttribute('aria-expanded', String(isOpen));
+}
+
+function renderTimeOptions(container, count, selectedValue){
+  container.innerHTML = '';
+  for(let value = 0; value < count; value++){
+    const option = document.createElement('button');
+    const label = String(value).padStart(2, '0');
+    option.type = 'button';
+    option.className = 'time-option' + (value === selectedValue ? ' selected' : '');
+    option.dataset.value = value;
+    option.setAttribute('role', 'option');
+    option.setAttribute('aria-selected', String(value === selectedValue));
+    option.textContent = label;
+    container.appendChild(option);
+  }
+}
+
+function refreshTimePicker(){
+  renderTimeOptions(fHourOptions, 24, selectedHour);
+  renderTimeOptions(fMinuteOptions, 60, selectedMinute);
+}
+
+function setTimePickerValue(value){
+  const match = String(value || '').match(/^(\d{2}):(\d{2})$/);
+  selectedHour = match ? Number(match[1]) : null;
+  selectedMinute = match ? Number(match[2]) : null;
+  fHeures.value = match ? value : '';
+  fHeuresDisplay.textContent = match ? `${match[1]}H${match[2]}` : 'Choisir une heure';
+  refreshTimePicker();
+}
+
+function commitTimePickerSelection(){
+  refreshTimePicker();
+  if(selectedHour === null || selectedMinute === null) return;
+  const hour = String(selectedHour).padStart(2, '0');
+  const minute = String(selectedMinute).padStart(2, '0');
+  setTimePickerValue(`${hour}:${minute}`);
+  setTimePickerOpen(false);
+}
+
+fHeuresTrigger.addEventListener('click', ()=>{
+  setTimePickerOpen(!fHeuresPicker.classList.contains('open'));
+});
+fHourOptions.addEventListener('click', e=>{
+  const option = e.target.closest('[data-value]');
+  if(!option) return;
+  selectedHour = Number(option.dataset.value);
+  commitTimePickerSelection();
+});
+fMinuteOptions.addEventListener('click', e=>{
+  const option = e.target.closest('[data-value]');
+  if(!option) return;
+  selectedMinute = Number(option.dataset.value);
+  commitTimePickerSelection();
+});
+document.getElementById('fHeuresClose').addEventListener('click', ()=> setTimePickerOpen(false));
+document.addEventListener('click', e=>{
+  if(!fHeuresPicker.contains(e.target) && e.target !== fHeuresTrigger) setTimePickerOpen(false);
+});
+refreshTimePicker();
 
 // Ouvre le modal en mode création : formulaire vierge.
 function openCreateModal(){
@@ -669,7 +789,7 @@ function openEditModal(rowId){
   document.getElementById('modalTitle').textContent = 'Modifier le vol';
   resetForm();
   fVols.value = row.vols;
-  fHeures.value = row.heures;
+  setTimePickerValue(formatTimeForPicker(row.heures));
   fPax.value = row.cancelled ? '' : row.pax;
   fSenegalais.value = row.cancelled ? '' : row.senegalais;
   fCancelled.checked = row.cancelled;
@@ -686,6 +806,8 @@ function closeModal(){
 
 function resetForm(){
   form.reset();
+  setTimePickerValue('');
+  setTimePickerOpen(false);
   clearErrors();
   updateComputedEtrangers();
   toggleDisabledFields();
@@ -694,7 +816,7 @@ function resetForm(){
 function clearErrors(){
   ['Vols','Heures','Pax','Senegalais'].forEach(f=>{
     document.getElementById('err'+f).textContent = '';
-    document.getElementById('f'+f).classList.remove('error');
+    (f === 'Heures' ? fHeuresTrigger : document.getElementById('f'+f)).classList.remove('error');
   });
 }
 
@@ -733,7 +855,7 @@ function validate(){
   }
   if(!fHeures.value.trim()){
     document.getElementById('errHeures').textContent = "L'heure est obligatoire.";
-    fHeures.classList.add('error'); valid = false;
+    fHeuresTrigger.classList.add('error'); valid = false;
   }
   if(!fCancelled.checked){
     const p = fPax.value, s = fSenegalais.value;
@@ -769,7 +891,7 @@ form.addEventListener('submit', (e)=>{
     state.rows.push({
       id: 'flight-' + Date.now() + '-' + Math.random().toString(36).slice(2,7),
       vols: fVols.value.trim(),
-      heures: fHeures.value.trim(),
+      heures: formatTimeForStorage(fHeures.value),
       senegalais, etrangers, pax, cancelled
     });
     saveSheet(); render();
@@ -779,7 +901,7 @@ form.addEventListener('submit', (e)=>{
     const row = state.rows.find(r => r.id === selectedRowId);
     if(row){
       row.vols = fVols.value.trim();
-      row.heures = fHeures.value.trim();
+      row.heures = formatTimeForStorage(fHeures.value);
       row.senegalais = senegalais;
       row.etrangers = etrangers;
       row.pax = pax;
