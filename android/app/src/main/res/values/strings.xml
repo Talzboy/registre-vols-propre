@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Registre Vols PAF</string>
+    <string name="title_activity_main">Registre Vols PAF</string>
+    <string name="package_name">sn.gouv.police.registrevols</string>
+    <string name="custom_url_scheme">sn.gouv.police.registrevols</string>
+</resources>
