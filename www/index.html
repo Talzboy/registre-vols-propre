@@ -212,30 +212,6 @@
   .form-field input.error{border-color:var(--danger);}
   .form-field input.error:focus{box-shadow:0 0 0 3px rgba(220,38,38,0.15);}
   .form-field input:disabled{background:var(--foot-bg); color:var(--text-faint);}
-  .time-picker-trigger{
-    width:100%; min-height:40px; text-align:left; border:1px solid var(--border); border-radius:8px;
-    padding:9px 11px; font:inherit; font-size:14px; color:var(--text-primary); background:var(--surface); cursor:pointer;
-  }
-  .time-picker-trigger:focus{outline:none; border-color:var(--blue); box-shadow:0 0 0 3px rgba(37,99,235,0.15);}
-  .time-picker-trigger.error{border-color:var(--danger);}
-  .time-picker-trigger.error:focus{box-shadow:0 0 0 3px rgba(220,38,38,0.15);}
-  .time-picker{
-    display:none; grid-template-columns:1fr 1fr; gap:12px; margin-top:8px; padding:12px;
-    border:1px solid var(--border); border-radius:8px; background:var(--surface);
-  }
-  .time-picker.open{display:grid;}
-  .time-picker-column{min-width:0;}
-  .time-picker-label{display:block; margin-bottom:7px; font-size:12px; font-weight:700; color:var(--text-secondary);}
-  .time-picker-options{
-    display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px;
-    max-height:168px; overflow-y:auto; overscroll-behavior:contain;
-  }
-  .time-option{
-    min-height:32px; border:1px solid transparent; border-radius:6px; background:var(--surface);
-    color:var(--text-primary); font:inherit; font-size:13px; font-weight:600; cursor:pointer;
-  }
-  .time-option:hover,.time-option.selected{background:var(--blue-tint); border-color:var(--blue); color:var(--blue);}
-  .time-picker-close{grid-column:1/-1; justify-self:end; padding:5px 10px; border:0; background:transparent; color:var(--text-secondary); font:inherit; font-size:12px; font-weight:600; cursor:pointer;}
   .field-error{color:var(--danger); font-size:12px; margin-top:5px;}
   .computed-box{
     border:1px solid var(--border); background:var(--blue-tint); border-radius:8px;
@@ -293,6 +269,33 @@
   .icon-btn:hover{background:var(--blue-tint); border-color:var(--blue); color:var(--blue);}
   .icon-btn.danger:hover{background:rgba(220,38,38,0.10); border-color:var(--danger); color:var(--danger);}
   .backups-empty{text-align:center; padding:30px 10px; color:var(--text-secondary); font-size:13.5px;}
+
+  /* Sélecteur d'heure (24 h) */
+  .form-field input.time-input{cursor:pointer;}
+  .tp-overlay{
+    position:fixed; inset:0; z-index:150; display:none; align-items:center; justify-content:center;
+    background:var(--overlay); backdrop-filter: blur(3px); padding:16px;
+  }
+  .tp-overlay.open{display:flex;}
+  .tp-card{
+    background:var(--surface); border-radius:14px; box-shadow:0 20px 50px rgba(0,0,0,0.35);
+    padding:20px; width:100%; max-width:320px; border-top:4px solid var(--blue);
+  }
+  .tp-display{text-align:center; font-size:30px; font-weight:800; color:var(--blue); margin-bottom:14px; letter-spacing:1px;}
+  .tp-cols{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .tp-col-title{font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-secondary); text-align:center; margin-bottom:6px;}
+  .tp-list{
+    height:210px; overflow-y:auto; border:1px solid var(--border); border-radius:10px;
+    padding:4px; display:flex; flex-direction:column; gap:2px; -webkit-overflow-scrolling:touch;
+  }
+  .tp-item{
+    flex-shrink:0; border:none; background:transparent; color:var(--text-primary); font-family:inherit;
+    font-size:16px; font-weight:600; padding:10px 0; border-radius:8px; cursor:pointer; text-align:center;
+    transition:background .1s ease;
+  }
+  .tp-item:hover{background:var(--blue-tint);}
+  .tp-item.selected{background:var(--blue); color:#fff;}
+  .tp-actions{display:flex; justify-content:flex-end; gap:10px; margin-top:16px;}
 
   /* Toast */
   .toast{
@@ -361,9 +364,7 @@
       <span class="icon">${''}</span>
       Ajouter un vol
     </button>
-    <button class="action" id="exportPdf">Exporter PDF</button>
     <button class="action" id="shareFile"><span class="icon" id="iconShareBtn" style="margin-right:6px;"></span>Partager</button>
-    <button class="action" id="printSheet">Imprimer</button>
     <button class="action" id="backupsBtn"><span class="icon" id="iconBackupsBtn" style="margin-right:6px;"></span>Sauvegardes</button>
     <span class="spacer"></span>
     <button class="action ghost" id="resetAll">Réinitialiser cette feuille</button>
@@ -429,22 +430,8 @@
           <div class="field-error" id="errVols"></div>
         </div>
         <div class="form-field">
-          <label for="fHeuresTrigger" id="fHeuresLabel">Heures</label>
-          <input type="hidden" id="fHeures">
-          <button type="button" class="time-picker-trigger" id="fHeuresTrigger" aria-haspopup="dialog" aria-expanded="false" aria-controls="fHeuresPicker">
-            <span id="fHeuresDisplay">Choisir une heure</span>
-          </button>
-          <div class="time-picker" id="fHeuresPicker" role="dialog" aria-label="Choisir l'heure" aria-hidden="true">
-            <div class="time-picker-column">
-              <span class="time-picker-label">Heures</span>
-              <div class="time-picker-options" id="fHourOptions" role="listbox" aria-label="Heures"></div>
-            </div>
-            <div class="time-picker-column">
-              <span class="time-picker-label">Minutes</span>
-              <div class="time-picker-options" id="fMinuteOptions" role="listbox" aria-label="Minutes"></div>
-            </div>
-            <button type="button" class="time-picker-close" id="fHeuresClose">Fermer</button>
-          </div>
+          <label for="fHeures" id="fHeuresLabel">Heures</label>
+          <input type="text" id="fHeures" class="time-input" placeholder="Choisir l'heure" readonly autocomplete="off" inputmode="none">
           <div class="field-error" id="errHeures"></div>
         </div>
         <div class="form-field">
@@ -498,6 +485,27 @@
     </div>
 
     <div class="backups-list" id="backupsList"></div>
+  </div>
+</div>
+
+<!-- ===================== SÉLECTEUR D'HEURE ===================== -->
+<div class="tp-overlay" id="tpOverlay">
+  <div class="tp-card">
+    <div class="tp-display" id="tpDisplay">00H00</div>
+    <div class="tp-cols">
+      <div>
+        <div class="tp-col-title">Heures</div>
+        <div class="tp-list" id="tpHours"></div>
+      </div>
+      <div>
+        <div class="tp-col-title">Minutes</div>
+        <div class="tp-list" id="tpMinutes"></div>
+      </div>
+    </div>
+    <div class="tp-actions">
+      <button type="button" class="btn-cancel" id="tpCancel">Annuler</button>
+      <button type="button" class="btn-validate" id="tpOk">OK</button>
+    </div>
   </div>
 </div>
 
@@ -684,92 +692,10 @@ const overlay = document.getElementById('modalOverlay');
 const form = document.getElementById('flightForm');
 const fVols = document.getElementById('fVols');
 const fHeures = document.getElementById('fHeures');
-const fHeuresTrigger = document.getElementById('fHeuresTrigger');
-const fHeuresDisplay = document.getElementById('fHeuresDisplay');
-const fHeuresPicker = document.getElementById('fHeuresPicker');
-const fHourOptions = document.getElementById('fHourOptions');
-const fMinuteOptions = document.getElementById('fMinuteOptions');
 const fSenegalais = document.getElementById('fSenegalais');
 const fPax = document.getElementById('fPax');
 const fCancelled = document.getElementById('fCancelled');
 const fEtrangersComputed = document.getElementById('fEtrangersComputed');
-
-function formatTimeForPicker(value){
-  const match = String(value || '').trim().match(/^(\d{1,2})[Hh:](\d{2})$/);
-  return match ? `${match[1].padStart(2, '0')}:${match[2]}` : '';
-}
-
-function formatTimeForStorage(value){
-  return value.replace(':', 'H');
-}
-
-let selectedHour = null;
-let selectedMinute = null;
-
-function setTimePickerOpen(isOpen){
-  fHeuresPicker.classList.toggle('open', isOpen);
-  fHeuresPicker.setAttribute('aria-hidden', String(!isOpen));
-  fHeuresTrigger.setAttribute('aria-expanded', String(isOpen));
-}
-
-function renderTimeOptions(container, count, selectedValue){
-  container.innerHTML = '';
-  for(let value = 0; value < count; value++){
-    const option = document.createElement('button');
-    const label = String(value).padStart(2, '0');
-    option.type = 'button';
-    option.className = 'time-option' + (value === selectedValue ? ' selected' : '');
-    option.dataset.value = value;
-    option.setAttribute('role', 'option');
-    option.setAttribute('aria-selected', String(value === selectedValue));
-    option.textContent = label;
-    container.appendChild(option);
-  }
-}
-
-function refreshTimePicker(){
-  renderTimeOptions(fHourOptions, 24, selectedHour);
-  renderTimeOptions(fMinuteOptions, 60, selectedMinute);
-}
-
-function setTimePickerValue(value){
-  const match = String(value || '').match(/^(\d{2}):(\d{2})$/);
-  selectedHour = match ? Number(match[1]) : null;
-  selectedMinute = match ? Number(match[2]) : null;
-  fHeures.value = match ? value : '';
-  fHeuresDisplay.textContent = match ? `${match[1]}H${match[2]}` : 'Choisir une heure';
-  refreshTimePicker();
-}
-
-function commitTimePickerSelection(){
-  refreshTimePicker();
-  if(selectedHour === null || selectedMinute === null) return;
-  const hour = String(selectedHour).padStart(2, '0');
-  const minute = String(selectedMinute).padStart(2, '0');
-  setTimePickerValue(`${hour}:${minute}`);
-  setTimePickerOpen(false);
-}
-
-fHeuresTrigger.addEventListener('click', ()=>{
-  setTimePickerOpen(!fHeuresPicker.classList.contains('open'));
-});
-fHourOptions.addEventListener('click', e=>{
-  const option = e.target.closest('[data-value]');
-  if(!option) return;
-  selectedHour = Number(option.dataset.value);
-  commitTimePickerSelection();
-});
-fMinuteOptions.addEventListener('click', e=>{
-  const option = e.target.closest('[data-value]');
-  if(!option) return;
-  selectedMinute = Number(option.dataset.value);
-  commitTimePickerSelection();
-});
-document.getElementById('fHeuresClose').addEventListener('click', ()=> setTimePickerOpen(false));
-document.addEventListener('click', e=>{
-  if(!fHeuresPicker.contains(e.target) && e.target !== fHeuresTrigger) setTimePickerOpen(false);
-});
-refreshTimePicker();
 
 // Ouvre le modal en mode création : formulaire vierge.
 function openCreateModal(){
@@ -789,7 +715,7 @@ function openEditModal(rowId){
   document.getElementById('modalTitle').textContent = 'Modifier le vol';
   resetForm();
   fVols.value = row.vols;
-  setTimePickerValue(formatTimeForPicker(row.heures));
+  fHeures.value = row.heures;
   fPax.value = row.cancelled ? '' : row.pax;
   fSenegalais.value = row.cancelled ? '' : row.senegalais;
   fCancelled.checked = row.cancelled;
@@ -806,8 +732,6 @@ function closeModal(){
 
 function resetForm(){
   form.reset();
-  setTimePickerValue('');
-  setTimePickerOpen(false);
   clearErrors();
   updateComputedEtrangers();
   toggleDisabledFields();
@@ -816,7 +740,7 @@ function resetForm(){
 function clearErrors(){
   ['Vols','Heures','Pax','Senegalais'].forEach(f=>{
     document.getElementById('err'+f).textContent = '';
-    (f === 'Heures' ? fHeuresTrigger : document.getElementById('f'+f)).classList.remove('error');
+    document.getElementById('f'+f).classList.remove('error');
   });
 }
 
@@ -844,6 +768,83 @@ document.getElementById('modalClose').addEventListener('click', closeModal);
 document.getElementById('modalCancelBtn').addEventListener('click', closeModal);
 overlay.addEventListener('click', (e)=>{ if(e.target === overlay) closeModal(); });
 
+/* ============ SÉLECTEUR D'HEURE (24 h, sans clavier) ============ */
+const tpOverlay = document.getElementById('tpOverlay');
+const tpHours = document.getElementById('tpHours');
+const tpMinutes = document.getElementById('tpMinutes');
+let tpH = 0, tpM = 0;
+
+function pad2(n){ return String(n).padStart(2,'0'); }
+
+// Accepte « 23H30 », « 23:30 », « 7h5 »… renvoie null si illisible.
+function parseTime(str){
+  const m = String(str||'').trim().match(/^(\d{1,2})\s*[hH:]\s*(\d{1,2})?$/);
+  if(!m) return null;
+  const h = Number(m[1]), mi = m[2] === undefined ? 0 : Number(m[2]);
+  if(h > 23 || mi > 59) return null;
+  return { h, m: mi };
+}
+
+(function buildTimeLists(){
+  for(let h = 0; h < 24; h++){
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'tp-item'; b.dataset.v = h; b.textContent = pad2(h);
+    tpHours.appendChild(b);
+  }
+  for(let m = 0; m < 60; m++){
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'tp-item'; b.dataset.v = m; b.textContent = pad2(m);
+    tpMinutes.appendChild(b);
+  }
+})();
+
+function refreshTimePicker(scroll){
+  document.getElementById('tpDisplay').textContent = pad2(tpH) + 'H' + pad2(tpM);
+  tpHours.querySelectorAll('.tp-item').forEach(b => b.classList.toggle('selected', Number(b.dataset.v) === tpH));
+  tpMinutes.querySelectorAll('.tp-item').forEach(b => b.classList.toggle('selected', Number(b.dataset.v) === tpM));
+  if(scroll){
+    [tpHours, tpMinutes].forEach(list=>{
+      const sel = list.querySelector('.selected');
+      if(sel) list.scrollTop = sel.offsetTop - list.clientHeight / 2 + sel.clientHeight / 2;
+    });
+  }
+}
+
+function openTimePicker(){
+  const parsed = parseTime(fHeures.value);
+  tpH = parsed ? parsed.h : 0;
+  tpM = parsed ? parsed.m : 0;
+  tpOverlay.classList.add('open');
+  refreshTimePicker(true);
+}
+function closeTimePicker(){ tpOverlay.classList.remove('open'); }
+
+tpHours.addEventListener('click', (e)=>{
+  const b = e.target.closest('.tp-item'); if(!b) return;
+  tpH = Number(b.dataset.v); refreshTimePicker(false);
+});
+tpMinutes.addEventListener('click', (e)=>{
+  const b = e.target.closest('.tp-item'); if(!b) return;
+  tpM = Number(b.dataset.v); refreshTimePicker(false);
+});
+
+document.getElementById('tpOk').addEventListener('click', ()=>{
+  fHeures.value = pad2(tpH) + 'H' + pad2(tpM); // format conservé : ex. 23H30
+  document.getElementById('errHeures').textContent = '';
+  fHeures.classList.remove('error');
+  closeTimePicker();
+});
+document.getElementById('tpCancel').addEventListener('click', closeTimePicker);
+tpOverlay.addEventListener('click', (e)=>{ if(e.target === tpOverlay) closeTimePicker(); });
+
+fHeures.addEventListener('click', openTimePicker);
+fHeures.addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openTimePicker(); }
+});
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Escape' && tpOverlay.classList.contains('open')) closeTimePicker();
+});
+
 /* ============ VALIDATION ============ */
 function validate(){
   clearErrors();
@@ -855,7 +856,7 @@ function validate(){
   }
   if(!fHeures.value.trim()){
     document.getElementById('errHeures').textContent = "L'heure est obligatoire.";
-    fHeuresTrigger.classList.add('error'); valid = false;
+    fHeures.classList.add('error'); valid = false;
   }
   if(!fCancelled.checked){
     const p = fPax.value, s = fSenegalais.value;
@@ -891,7 +892,7 @@ form.addEventListener('submit', (e)=>{
     state.rows.push({
       id: 'flight-' + Date.now() + '-' + Math.random().toString(36).slice(2,7),
       vols: fVols.value.trim(),
-      heures: formatTimeForStorage(fHeures.value),
+      heures: fHeures.value.trim(),
       senegalais, etrangers, pax, cancelled
     });
     saveSheet(); render();
@@ -901,7 +902,7 @@ form.addEventListener('submit', (e)=>{
     const row = state.rows.find(r => r.id === selectedRowId);
     if(row){
       row.vols = fVols.value.trim();
-      row.heures = formatTimeForStorage(fHeures.value);
+      row.heures = fHeures.value.trim();
       row.senegalais = senegalais;
       row.etrangers = etrangers;
       row.pax = pax;
@@ -1154,7 +1155,6 @@ document.getElementById('resetAll').addEventListener('click', ()=>{
   }
 });
 
-document.getElementById('printSheet').addEventListener('click', ()=> window.print());
 
 
 /* ============ GÉNÉRATION PDF (réutilisée par Export et Partager) ============ */
@@ -1214,9 +1214,6 @@ function pdfFileName(){
   return `registre_${selection.brigade}_${selection.sens}_${selection.periode}_${periodSlug}.pdf`;
 }
 
-document.getElementById('exportPdf').addEventListener('click', ()=>{
-  buildPdfDoc().save(pdfFileName());
-});
 
 /* ============ PARTAGER (WhatsApp et autres apps) ============ */
 document.getElementById('shareFile').addEventListener('click', async ()=>{
