@@ -171,6 +171,14 @@
     display:inline-flex; align-items:center; gap:6px; transition:all .15s ease;
   }
   .btn-edit:hover{background:var(--blue); color:#fff;}
+  .row-actions{display:inline-flex; align-items:center; justify-content:center; gap:6px;}
+  .btn-delete{
+    width:34px; height:34px; display:inline-flex; align-items:center; justify-content:center;
+    padding:6px; border:1px solid var(--danger); border-radius:6px; background:var(--surface);
+    color:var(--danger); cursor:pointer; transition:all .15s ease;
+  }
+  .btn-delete:hover{background:rgba(220,38,38,0.10);}
+  .btn-delete .icon{width:16px; height:16px;}
 
   tfoot td{background:var(--foot-bg); padding:14px; font-weight:700; font-size:14px; color:var(--text-primary);}
   tfoot .lbl{display:block; font-size:9.5px; font-weight:600; letter-spacing:0.8px; text-transform:uppercase; color:var(--text-muted); margin-bottom:3px;}
@@ -658,7 +666,7 @@ function render(){
       <td class="center">${row.cancelled ? '—' : row.senegalais}</td>
       <td class="center">${row.cancelled ? '—' : row.etrangers}</td>
       <td class="center">${row.cancelled ? '<span class="badge badge-cancelled">Annulé</span>' : '<span class="badge badge-active">Actif</span>'}</td>
-      <td class="center"><button class="btn-edit" data-edit="${row.id}"><span class="icon" data-icon="pencil"></span>Modifier</button></td>
+      <td class="center"><div class="row-actions"><button class="btn-edit" data-edit="${row.id}"><span class="icon" data-icon="pencil"></span>Modifier</button><button class="btn-delete" data-delete="${row.id}" aria-label="Supprimer le vol ${escapeHtml(row.vols)}" title="Supprimer"><span class="icon" data-icon="trash"></span></button></div></td>
     `;
     tbody.appendChild(tr);
 
@@ -679,9 +687,23 @@ function render(){
   document.getElementById('sealVols').textContent = totVols;
 
   tbody.querySelectorAll('[data-icon="pencil"]').forEach(el => el.innerHTML = ICONS.pencil);
+  tbody.querySelectorAll('[data-icon="trash"]').forEach(el => el.innerHTML = ICONS.trash);
   tbody.querySelectorAll('[data-edit]').forEach(btn=>{
     btn.addEventListener('click', ()=> openEditModal(btn.dataset.edit));
   });
+  tbody.querySelectorAll('[data-delete]').forEach(btn=>{
+    btn.addEventListener('click', ()=> deleteFlight(btn.dataset.delete));
+  });
+}
+
+function deleteFlight(rowId){
+  const row = state.rows.find(item => item.id === rowId);
+  if(!row) return;
+  if(!confirm(`Supprimer définitivement le vol ${row.vols} (${row.heures}) ?`)) return;
+  state.rows = state.rows.filter(item => item.id !== rowId);
+  saveSheet();
+  render();
+  showToast('Vol supprimé avec succès');
 }
 
 /* ============ MODAL : OUVERTURE / FERMETURE ============ */
